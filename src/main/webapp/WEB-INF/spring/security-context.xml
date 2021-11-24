@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:security="http://www.springframework.org/schema/security"
+	xsi:schemaLocation="http://www.springframework.org/schema/security
+	 http://www.springframework.org/schema/security/spring-security.xsd
+	 http://www.springframework.org/schema/beans
+	 http://www.springframework.org/schema/beans/spring-beans.xsd">
+	
+<bean id="customAccessDenied" class="com.melon.security.CustomAccessDeniedHandler"></bean>	
+<bean id="bcrpytPasswordEncoder" class="org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder"></bean>
+<bean id="customUserDetailsService" class="com.melon.security.CustomUserDetailsService"></bean>
+	
+	<security:http>
+	
+		<!-- 특정한 URI에 접근할 때 인터셉터를 이용해서 접근을 제한 -->
+		<!-- pattern : URI의 패턴 , access : 권한을 체크-->
+		<security:intercept-url pattern="/sample/all" access="permitAll"/>
+		<security:intercept-url pattern="/sample/member" access="hasRole('ROLE_MEMBER')"/>
+		<security:intercept-url pattern="/sample/admin" access="hasRole('ROLE_ADMIN')"/>
+	
+		<security:access-denied-handler ref="customAccessDenied"/>
+		
+		<security:form-login login-page="/customLogin" />
+		 
+		<security:logout logout-url="/customLogout" invalidate-session="true" 
+			delete-cookies="remember-me,JSESSION_ID"/>	
+		
+		<security:remember-me data-source-ref="dataSource" token-validity-seconds="604800" />	
+
+		<security:csrf disabled="true" />
+		
+	</security:http>
+
+	<security:authentication-manager>
+	
+		<security:authentication-provider user-service-ref="customUserDetailsService">
+		
+		
+<!-- 			<security:jdbc-user-service data-source-ref="dataSource"
+			users-by-username-query=		"select userid, userpw, enabled from tbl_member where userid = ? "
+			authorities-by-username-query=	"select userid, auth from tbl_member_auth where userid = ? "/> -->
+			
+			<security:password-encoder ref="bcrpytPasswordEncoder"/>
+			
+		</security:authentication-provider>
+	
+	</security:authentication-manager>	
+	
+	
+	
+</beans>

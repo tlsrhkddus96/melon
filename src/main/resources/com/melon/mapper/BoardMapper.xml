@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+	
+<mapper namespace ="com.melon.mapper.BoardMapper">
+	
+	<!-- 검색조건을 위한 쿼리문 sql태그에 저장  -->
+	<sql id="criteria">
+		<trim prefix="(" suffix=") AND " prefixOverrides="OR">
+			<foreach item="type" collection="typeArr">
+				<trim prefix="OR">
+					<choose>
+						<when test="type == 'T'.toString()">
+							title like '%' || #{keyword} || '%'
+						</when>
+						<when test="type == 'C'.toString()">
+							content like '%' || #{keyword} || '%'
+						</when>
+						<when test="type == 'W'.toString()">
+							writer like '%' || #{keyword} || '%'
+						</when>
+					</choose>
+				</trim>
+			</foreach>
+		</trim>
+	</sql>
+
+	<!-- 쿼리의 결과값을 BoardVO클래스의 객체로 만들기 위해 resultType 선언  -->
+	<select id="getList" resultType="com.melon.domain.BoardVO">
+	
+	<!-- 부등호 사용을 위해 CDATA 사용  -->
+	<![CDATA[
+		select * from tbl_board where bno > 0
+	]]>
+	</select>
+	
+	
+	<select id="getListWithPaging" resultType="com.melon.domain.BoardVO">
+		
+		<!-- 인라인 뷰와 오라클 힌트, 검색필터를 이용해 원하는 데이터 개수만 뽑는다 -->
+		<![CDATA[
+			select
+				bno, title, content, writer, regdate, updatedate, replycnt
+			from
+				(
+				select /*+INDEX_DESC(tbl_board pk_board) */
+					rownum rn, bno, title, content, writer, regdate, updatedate, replycnt
+				from
+					tbl_board
+				where
+		]]>
+		
+		<include refid="criteria"></include>
+		
+		<![CDATA[	
+				 rownum <= #{pageNum} * #{amount}
+				)
+			where rn > (#{pageNum}-1 ) * #{amount}
+		]]>
+	
+	</select>
+	
+	
+	<insert id="insert">
+	
+		insert into tbl_board (bno,title,content,writer)
+		values (seq_board.nextval, #{title}, #{content}, #{writer})
+	
+	</insert>
+	
+	
+	<insert id="insertSelectKey">
+	
+		<!-- 테이블 안 bno의 값을 미리 SQL을 통해 처리 후 SelectKey를 이용해 bno이름으로 저장 -->
+		<selectKey keyProperty="bno" order="BEFORE" resultType="long">
+			select seq_board.nextval from dual
+		</selectKey>
+		
+		insert into tbl_board(bno,title,content,writer)
+		values (#{bno}, #{title}, #{content}, #{writer})
+	
+	</insert>
+	
+	
+	<select id="read" resultType="com.melon.domain.BoardVO">
+		
+		select * from tbl_board where bno = #{bno}
+		
+	</select>
+	
+	
+	<delete id="delete">
+		
+		delete from tbl_board where bno = #{bno}
+		
+	</delete>
+	
+	
+	<update id="update">
+		
+		update tbl_board set
+		title = #{title},
+		content = #{content},
+		writer = #{writer},
+		updateDate = sysdate
+		where bno = #{bno}
+		
+	</update>
+	
+	
+	<select id="getTotalCount" resultType="int">
+		
+		select count(*) from tbl_board
+		where
+		
+		<include refid="criteria"></include>
+		
+		bno > 0
+		
+	</select>
+	
+	
+	<update id="updateReplyCnt">
+	
+		update tbl_board set replycnt = replycnt + #{amount} where bno = #{bno}
+	
+	</update>
+
+
+
+
+</mapper>
